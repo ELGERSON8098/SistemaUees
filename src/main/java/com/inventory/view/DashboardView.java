@@ -31,6 +31,7 @@ public class DashboardView extends JFrame {
         
         panelContenido.add(crearPanelBienvenida(), "inicio");
         panelContenido.add(new ProductosView(), "productos");
+        panelContenido.add(new CategoriasView(), "categorias");
         
         panelPrincipal.add(panelContenido, BorderLayout.CENTER);
         
@@ -68,6 +69,15 @@ public class DashboardView extends JFrame {
             }
         });
         panel.add(btnProductos);
+
+        JButton btnCategorias = crearBotonMenu("Categorías");
+        btnCategorias.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                cardLayout.show(panelContenido, "categorias");
+            }
+        });
+        panel.add(btnCategorias);
 
         panel.add(Box.createVerticalGlue());
 

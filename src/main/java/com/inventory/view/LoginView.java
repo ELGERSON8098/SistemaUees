@@ -107,7 +107,9 @@ public class LoginView extends JFrame {
             messageLabel.setText("Login exitoso!");
             messageLabel.setForeground(new Color(0, 150, 0));
             JOptionPane.showMessageDialog(this, "¡Bienvenido " + usuarioAutenticado.getNombre() + "!", "Login Exitoso", JOptionPane.INFORMATION_MESSAGE);
-            limpiarCampos();
+            DashboardView dashboardView = new DashboardView(usuarioAutenticado);
+            dashboardView.setVisible(true);
+            this.dispose();
         } else {
             messageLabel.setText("Usuario o contraseña incorrectos");
             messageLabel.setForeground(Color.RED);

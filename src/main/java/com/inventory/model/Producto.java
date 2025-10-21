@@ -84,4 +84,9 @@ public class Producto {
     public void setNombreCategoria(String nombreCategoria) {
         this.nombreCategoria = nombreCategoria;
     }
+
+    @Override
+    public String toString() {
+        return nombre != null ? nombre : String.valueOf(idProducto);
+    }
 }

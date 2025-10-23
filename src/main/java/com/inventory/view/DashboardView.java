@@ -1,19 +1,28 @@
 package com.inventory.view;
 
 import com.inventory.model.Usuario;
+import com.inventory.dao.ProductoDAO;
+import com.inventory.model.Producto;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class DashboardView extends JFrame {
     private Usuario usuarioActual;
     private JPanel panelContenido;
     private CardLayout cardLayout;
+    private ProductoDAO productoDAO;
+    private JPanel panelAlertas;
+    private Timer timerAlertas;
 
     public DashboardView(Usuario usuario) {
         this.usuarioActual = usuario;
+        this.productoDAO = new ProductoDAO();
         
         setTitle("Sistema de Inventario - Dashboard");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -33,9 +42,16 @@ public class DashboardView extends JFrame {
         panelContenido.add(new ProductosView(), "productos");
         panelContenido.add(new CategoriasView(), "categorias");
         
-        panelPrincipal.add(panelContenido, BorderLayout.CENTER);
+        JPanel panelCentral = new JPanel(new BorderLayout());
+        panelAlertas = crearPanelAlertas();
+        panelCentral.add(panelAlertas, BorderLayout.NORTH);
+        panelCentral.add(panelContenido, BorderLayout.CENTER);
+        
+        panelPrincipal.add(panelCentral, BorderLayout.CENTER);
         
         add(panelPrincipal);
+        
+        iniciarActualizacionAlertas();
     }
 
     private JPanel crearPanelMenu() {
@@ -134,7 +150,81 @@ public class DashboardView extends JFrame {
         return panel;
     }
 
+    private JPanel crearPanelAlertas() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(new Color(255, 200, 0));
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        panel.setPreferredSize(new Dimension(0, 120));
+        
+        JLabel titulo = new JLabel("ALERTAS DE STOCK BAJO");
+        titulo.setFont(new Font("Arial", Font.BOLD, 13));
+        titulo.setForeground(new Color(139, 69, 19));
+        panel.add(titulo, BorderLayout.NORTH);
+        
+        JPanel panelProductos = new JPanel();
+        panelProductos.setLayout(new BoxLayout(panelProductos, BoxLayout.Y_AXIS));
+        panelProductos.setOpaque(false);
+        
+        JScrollPane scrollPane = new JScrollPane(panelProductos);
+        scrollPane.setOpaque(false);
+        scrollPane.getViewport().setOpaque(false);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        panel.add(scrollPane, BorderLayout.CENTER);
+        
+        panel.setName("alertasPanel");
+        panel.putClientProperty("productosPanel", panelProductos);
+        
+        return panel;
+    }
+
+    private void iniciarActualizacionAlertas() {
+        timerAlertas = new Timer();
+        timerAlertas.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                actualizarAlertas();
+            }
+        }, 0, 2000);
+    }
+
+    public void refrescarAlertas() {
+        actualizarAlertas();
+    }
+
+    private void actualizarAlertas() {
+        SwingUtilities.invokeLater(() -> {
+            List<Producto> productosStockBajo = productoDAO.obtenerProductosStockBajo(10);
+            
+            JPanel panelProductos = (JPanel) panelAlertas.getClientProperty("productosPanel");
+            panelProductos.removeAll();
+            
+            if (productosStockBajo.isEmpty()) {
+                panelAlertas.setVisible(false);
+            } else {
+                panelAlertas.setVisible(true);
+                for (Producto p : productosStockBajo) {
+                    JPanel productoPanel = new JPanel(new BorderLayout());
+                    productoPanel.setOpaque(false);
+                    productoPanel.setBorder(BorderFactory.createEmptyBorder(5, 0, 5, 0));
+                    
+                    JLabel etiqueta = new JLabel(String.format("• %s - Stock: %d", p.getNombre(), p.getStock()));
+                    etiqueta.setFont(new Font("Arial", Font.PLAIN, 11));
+                    etiqueta.setForeground(new Color(139, 69, 19));
+                    
+                    productoPanel.add(etiqueta, BorderLayout.WEST);
+                    panelProductos.add(productoPanel);
+                }
+            }
+            
+            panelProductos.revalidate();
+            panelProductos.repaint();
+        });
+    }
+
     private void logout() {
+        if (timerAlertas != null) {
+            timerAlertas.cancel();
+        }
         LoginView loginView = new LoginView();
         loginView.setVisible(true);
         this.dispose();

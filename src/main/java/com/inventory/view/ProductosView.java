@@ -1,10 +1,16 @@
 package com.inventory.view;
 
-import com.inventory.dao.*;
-import com.inventory.model.*;
+import com.inventory.dao.ProductoDAO;
+import com.inventory.dao.CategoriaDAO;
+import com.inventory.dao.ProveedorDAO;
+import com.inventory.dao.EntradaDAO;
+import com.inventory.dao.SalidaDAO;
+import com.inventory.model.Producto;
+import com.inventory.model.Categoria;
+import com.inventory.model.Proveedor;
+import com.inventory.model.Entrada;
+import com.inventory.model.Salida;
 import com.inventory.util.PdfExporter;
-
-
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -741,13 +747,6 @@ public class ProductosView extends JPanel {
             }
         }
 
-        private void cargarProveedores() {
-            proveedorComboBox.removeAllItems();
-            List<Proveedor> proveedores = proveedorDAO.obtenerTodosProveedores();
-            for (Proveedor p : proveedores) {
-                proveedorComboBox.addItem(p);
-            }
-        }
 
         private void cargarEntradas() {
             modeloTabla.setRowCount(0);

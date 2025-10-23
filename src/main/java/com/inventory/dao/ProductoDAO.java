@@ -168,4 +168,39 @@ public class ProductoDAO {
         
         return null;
     }
+
+    public List<Producto> obtenerProductosStockBajo(int umbral) {
+        List<Producto> productos = new ArrayList<>();
+        String query = "SELECT p.id_producto, p.nombre, p.descripcion, p.id_categoria, p.id_proveedor, p.precio, p.stock, " +
+                       "c.nombre as categoria_nombre, pr.nombre as proveedor_nombre " +
+                       "FROM productos p LEFT JOIN categorias c ON p.id_categoria = c.id_categoria " +
+                       "LEFT JOIN proveedores pr ON p.id_proveedor = pr.id_proveedor " +
+                       "WHERE p.stock <= ? ORDER BY p.stock ASC";
+        
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+            
+            pstmt.setInt(1, umbral);
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                Producto producto = new Producto(
+                    rs.getInt("id_producto"),
+                    rs.getString("nombre"),
+                    rs.getString("descripcion"),
+                    rs.getInt("id_categoria"),
+                    rs.getInt("id_proveedor"),
+                    rs.getBigDecimal("precio"),
+                    rs.getInt("stock"),
+                    rs.getString("categoria_nombre"),
+                    rs.getString("proveedor_nombre")
+                );
+                productos.add(producto);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        
+        return productos;
+    }
 }

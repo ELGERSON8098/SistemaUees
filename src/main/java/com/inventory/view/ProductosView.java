@@ -2,6 +2,7 @@ package com.inventory.view;
 
 import com.inventory.dao.*;
 import com.inventory.model.*;
+import com.inventory.util.PdfExporter;
 
 
 
@@ -162,6 +163,16 @@ public class ProductosView extends JPanel {
                 }
             });
             panel.add(btnActualizar, gbc);
+
+            gbc.gridx = 2;
+            JButton btnExportarCSV = new JButton("Exportar CSV");
+            btnExportarCSV.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    exportarProductosACSV();
+                }
+            });
+            panel.add(btnExportarCSV, gbc);
 
             return panel;
         }
@@ -363,6 +374,39 @@ public class ProductosView extends JPanel {
 
         public void refrescarTabla() {
             cargarProductos();
+        }
+
+        private void exportarProductosACSV() {
+            List<Producto> productos = productoDAO.obtenerTodosProductos();
+            List<Producto> productosConStock = new java.util.ArrayList<>();
+            
+            for (Producto p : productos) {
+                if (p.getStock() > 0) {
+                    productosConStock.add(p);
+                }
+            }
+
+            if (productosConStock.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "No hay productos con stock para exportar", "Información", JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle("Guardar CSV");
+            fileChooser.setFileFilter(new FileNameExtensionFilter("CSV Files", "csv"));
+            
+            if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+                File file = fileChooser.getSelectedFile();
+                String rutaCSV = file.getAbsolutePath();
+
+                try {
+                    PdfExporter.exportarProductos(productosConStock, rutaCSV);
+                    JOptionPane.showMessageDialog(this, "CSV exportado exitosamente en: " + rutaCSV, "Éxito", JOptionPane.INFORMATION_MESSAGE);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "Error al exportar CSV: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                    ex.printStackTrace();
+                }
+            }
         }
     }
 

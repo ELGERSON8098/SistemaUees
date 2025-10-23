@@ -1,55 +1,46 @@
 package com.inventory.util;
 
 import com.inventory.model.Producto;
-import com.itextpdf.kernel.pdf.PdfWriter;
-import com.itextpdf.kernel.pdf.PdfDocument;
-import com.itextpdf.layout.Document;
-import com.itextpdf.layout.element.Table;
-import com.itextpdf.layout.element.Cell;
-import com.itextpdf.layout.element.Paragraph;
-import com.itextpdf.layout.properties.TextAlignment;
-
-import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 public class PdfExporter {
     
-    public static boolean exportarProductos(List<Producto> productos, String rutaPDF) throws Exception {
-        if (!rutaPDF.endsWith(".pdf")) {
-            rutaPDF += ".pdf";
+    public static boolean exportarProductos(List<Producto> productos, String rutaArchivo) throws Exception {
+        if (!rutaArchivo.endsWith(".csv")) {
+            rutaArchivo += ".csv";
         }
 
-        PdfWriter writer = new PdfWriter(rutaPDF);
-        PdfDocument pdfDoc = new PdfDocument(writer);
-        Document document = new Document(pdfDoc);
-
-        Paragraph titulo = new Paragraph("Reporte de Productos con Stock")
-                .setTextAlignment(TextAlignment.CENTER)
-                .setFontSize(18);
-        document.add(titulo);
-
-        Table tabla = new Table(7);
-        tabla.addHeaderCell(new Cell().add(new Paragraph("ID")));
-        tabla.addHeaderCell(new Cell().add(new Paragraph("Nombre")));
-        tabla.addHeaderCell(new Cell().add(new Paragraph("Descripción")));
-        tabla.addHeaderCell(new Cell().add(new Paragraph("Categoría")));
-        tabla.addHeaderCell(new Cell().add(new Paragraph("Proveedor")));
-        tabla.addHeaderCell(new Cell().add(new Paragraph("Precio")));
-        tabla.addHeaderCell(new Cell().add(new Paragraph("Stock")));
-
-        for (Producto p : productos) {
-            tabla.addCell(new Cell().add(new Paragraph(String.valueOf(p.getIdProducto()))));
-            tabla.addCell(new Cell().add(new Paragraph(p.getNombre())));
-            tabla.addCell(new Cell().add(new Paragraph(p.getDescripcion())));
-            tabla.addCell(new Cell().add(new Paragraph(p.getNombreCategoria())));
-            tabla.addCell(new Cell().add(new Paragraph(p.getNombreProveedor())));
-            tabla.addCell(new Cell().add(new Paragraph(p.getPrecio().toString())));
-            tabla.addCell(new Cell().add(new Paragraph(String.valueOf(p.getStock()))));
+        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(rutaArchivo), StandardCharsets.UTF_8)) {
+            writer.write("\uFEFF");
+            writer.write("ID;Nombre;Descripción;Categoría;Proveedor;Precio;Stock\r\n");
+            
+            for (Producto p : productos) {
+                StringBuilder linea = new StringBuilder();
+                linea.append(p.getIdProducto()).append(";");
+                linea.append(escaparCSV(p.getNombre())).append(";");
+                linea.append(escaparCSV(p.getDescripcion())).append(";");
+                linea.append(escaparCSV(p.getNombreCategoria())).append(";");
+                linea.append(escaparCSV(p.getNombreProveedor())).append(";");
+                linea.append(p.getPrecio().toString()).append(";");
+                linea.append(p.getStock());
+                writer.write(linea.toString());
+                writer.write("\r\n");
+            }
         }
-
-        document.add(tabla);
-        document.close();
 
         return true;
+    }
+    
+    private static String escaparCSV(String valor) {
+        if (valor == null) {
+            return "";
+        }
+        if (valor.contains(";") || valor.contains("\"") || valor.contains("\n")) {
+            return "\"" + valor.replace("\"", "\"\"") + "\"";
+        }
+        return valor;
     }
 }

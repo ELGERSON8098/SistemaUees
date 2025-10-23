@@ -12,7 +12,7 @@ import java.util.List;
 public class ProductoDAO {
 
     public boolean agregarProducto(Producto producto) {
-        String query = "INSERT INTO productos (nombre, descripcion, id_categoria, precio) VALUES (?, ?, ?, ?)";
+        String query = "INSERT INTO productos (nombre, descripcion, id_categoria, id_proveedor, precio, stock) VALUES (?, ?, ?, ?, ?, ?)";
         
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
@@ -20,7 +20,9 @@ public class ProductoDAO {
             pstmt.setString(1, producto.getNombre());
             pstmt.setString(2, producto.getDescripcion());
             pstmt.setInt(3, producto.getIdCategoria());
-            pstmt.setBigDecimal(4, producto.getPrecio());
+            pstmt.setInt(4, producto.getIdProveedor());
+            pstmt.setBigDecimal(5, producto.getPrecio());
+            pstmt.setInt(6, 0);
             
             int rowsInserted = pstmt.executeUpdate();
             return rowsInserted > 0;
@@ -32,8 +34,10 @@ public class ProductoDAO {
 
     public List<Producto> obtenerTodosProductos() {
         List<Producto> productos = new ArrayList<>();
-        String query = "SELECT p.id_producto, p.nombre, p.descripcion, p.id_categoria, p.precio, c.nombre as categoria_nombre " +
-                       "FROM productos p LEFT JOIN categorias c ON p.id_categoria = c.id_categoria";
+        String query = "SELECT p.id_producto, p.nombre, p.descripcion, p.id_categoria, p.id_proveedor, p.precio, p.stock, " +
+                       "c.nombre as categoria_nombre, pr.nombre as proveedor_nombre " +
+                       "FROM productos p LEFT JOIN categorias c ON p.id_categoria = c.id_categoria " +
+                       "LEFT JOIN proveedores pr ON p.id_proveedor = pr.id_proveedor";
         
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
@@ -46,8 +50,11 @@ public class ProductoDAO {
                     rs.getString("nombre"),
                     rs.getString("descripcion"),
                     rs.getInt("id_categoria"),
+                    rs.getInt("id_proveedor"),
                     rs.getBigDecimal("precio"),
-                    rs.getString("categoria_nombre")
+                    rs.getInt("stock"),
+                    rs.getString("categoria_nombre"),
+                    rs.getString("proveedor_nombre")
                 );
                 productos.add(producto);
             }
@@ -60,8 +67,10 @@ public class ProductoDAO {
 
     public List<Producto> obtenerProductosPorCategoria(int idCategoria) {
         List<Producto> productos = new ArrayList<>();
-        String query = "SELECT p.id_producto, p.nombre, p.descripcion, p.id_categoria, p.precio, c.nombre as categoria_nombre " +
+        String query = "SELECT p.id_producto, p.nombre, p.descripcion, p.id_categoria, p.id_proveedor, p.precio, p.stock, " +
+                       "c.nombre as categoria_nombre, pr.nombre as proveedor_nombre " +
                        "FROM productos p LEFT JOIN categorias c ON p.id_categoria = c.id_categoria " +
+                       "LEFT JOIN proveedores pr ON p.id_proveedor = pr.id_proveedor " +
                        "WHERE p.id_categoria = ?";
         
         try (Connection conn = DatabaseConfig.getConnection();
@@ -76,8 +85,11 @@ public class ProductoDAO {
                     rs.getString("nombre"),
                     rs.getString("descripcion"),
                     rs.getInt("id_categoria"),
+                    rs.getInt("id_proveedor"),
                     rs.getBigDecimal("precio"),
-                    rs.getString("categoria_nombre")
+                    rs.getInt("stock"),
+                    rs.getString("categoria_nombre"),
+                    rs.getString("proveedor_nombre")
                 );
                 productos.add(producto);
             }
@@ -89,7 +101,7 @@ public class ProductoDAO {
     }
 
     public boolean actualizarProducto(Producto producto) {
-        String query = "UPDATE productos SET nombre = ?, descripcion = ?, id_categoria = ?, precio = ? WHERE id_producto = ?";
+        String query = "UPDATE productos SET nombre = ?, descripcion = ?, id_categoria = ?, id_proveedor = ?, precio = ? WHERE id_producto = ?";
         
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
@@ -97,8 +109,9 @@ public class ProductoDAO {
             pstmt.setString(1, producto.getNombre());
             pstmt.setString(2, producto.getDescripcion());
             pstmt.setInt(3, producto.getIdCategoria());
-            pstmt.setBigDecimal(4, producto.getPrecio());
-            pstmt.setInt(5, producto.getIdProducto());
+            pstmt.setInt(4, producto.getIdProveedor());
+            pstmt.setBigDecimal(5, producto.getPrecio());
+            pstmt.setInt(6, producto.getIdProducto());
             
             int rowsUpdated = pstmt.executeUpdate();
             return rowsUpdated > 0;
@@ -124,8 +137,10 @@ public class ProductoDAO {
     }
 
     public Producto obtenerProductoPorId(int idProducto) {
-        String query = "SELECT p.id_producto, p.nombre, p.descripcion, p.id_categoria, p.precio, c.nombre as categoria_nombre " +
+        String query = "SELECT p.id_producto, p.nombre, p.descripcion, p.id_categoria, p.id_proveedor, p.precio, p.stock, " +
+                       "c.nombre as categoria_nombre, pr.nombre as proveedor_nombre " +
                        "FROM productos p LEFT JOIN categorias c ON p.id_categoria = c.id_categoria " +
+                       "LEFT JOIN proveedores pr ON p.id_proveedor = pr.id_proveedor " +
                        "WHERE p.id_producto = ?";
         
         try (Connection conn = DatabaseConfig.getConnection();
@@ -140,8 +155,11 @@ public class ProductoDAO {
                     rs.getString("nombre"),
                     rs.getString("descripcion"),
                     rs.getInt("id_categoria"),
+                    rs.getInt("id_proveedor"),
                     rs.getBigDecimal("precio"),
-                    rs.getString("categoria_nombre")
+                    rs.getInt("stock"),
+                    rs.getString("categoria_nombre"),
+                    rs.getString("proveedor_nombre")
                 );
             }
         } catch (SQLException e) {

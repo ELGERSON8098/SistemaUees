@@ -17,9 +17,16 @@ public class RegisterView extends JFrame {
     private JButton registerButton;
     private JButton backButton;
     private JLabel messageLabel;
+    private JLabel rolLabel;
     private UsuarioDAO usuarioDAO;
+    private boolean esRegistroAdmin;
 
     public RegisterView() {
+        this(false);
+    }
+
+    public RegisterView(boolean esRegistroAdmin) {
+        this.esRegistroAdmin = esRegistroAdmin;
         usuarioDAO = new UsuarioDAO();
         
         setTitle("Sistema de Inventario - Registrarse");
@@ -34,7 +41,7 @@ public class RegisterView extends JFrame {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(10, 10, 10, 10);
 
-        JLabel titleLabel = new JLabel("Crear Cuenta");
+        JLabel titleLabel = new JLabel(esRegistroAdmin ? "Crear Cuenta - Administrador (Primer Usuario)" : "Crear Cuenta");
         titleLabel.setFont(new Font("Arial", Font.BOLD, 18));
         gbc.gridx = 0;
         gbc.gridy = 0;
@@ -79,11 +86,17 @@ public class RegisterView extends JFrame {
 
         gbc.gridx = 0;
         gbc.gridy = 5;
-        JLabel rolLabel = new JLabel("Rol:");
+        rolLabel = new JLabel("Rol:");
         panel.add(rolLabel, gbc);
 
         gbc.gridx = 1;
-        rolComboBox = new JComboBox<>(new String[]{"empleado", "admin"});
+        if (esRegistroAdmin) {
+            rolComboBox = new JComboBox<>(new String[]{"admin"});
+            rolComboBox.setEnabled(false);
+        } else {
+            rolComboBox = new JComboBox<>(new String[]{"empleado"});
+            rolComboBox.setEnabled(false);
+        }
         panel.add(rolComboBox, gbc);
 
         gbc.gridx = 0;
@@ -107,6 +120,7 @@ public class RegisterView extends JFrame {
         
         backButton = new JButton("Volver");
         backButton.setPreferredSize(new Dimension(150, 35));
+        backButton.setEnabled(!esRegistroAdmin);
         backButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -115,7 +129,9 @@ public class RegisterView extends JFrame {
         });
         
         buttonPanel.add(registerButton);
-        buttonPanel.add(backButton);
+        if (!esRegistroAdmin) {
+            buttonPanel.add(backButton);
+        }
         panel.add(buttonPanel, gbc);
 
         add(panel);
@@ -160,12 +176,17 @@ public class RegisterView extends JFrame {
             return;
         }
 
-        Usuario nuevoUsuario = new Usuario(nombre, usuario, contrasena, rol);
+        String rolFinal = (String) rolComboBox.getSelectedItem();
+        Usuario nuevoUsuario = new Usuario(nombre, usuario, contrasena, rolFinal);
 
         if (usuarioDAO.registrarUsuario(nuevoUsuario)) {
             messageLabel.setText("Registro exitoso! Redirigiendo...");
             messageLabel.setForeground(new Color(0, 150, 0));
-            JOptionPane.showMessageDialog(this, "¡Registro exitoso! Ahora puede iniciar sesión.", "Registro Completado", JOptionPane.INFORMATION_MESSAGE);
+            if (esRegistroAdmin) {
+                JOptionPane.showMessageDialog(this, "¡Administrador creado exitosamente! Ahora puede iniciar sesión.", "Registro Completado", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this, "¡Registro exitoso! Ahora puede iniciar sesión.", "Registro Completado", JOptionPane.INFORMATION_MESSAGE);
+            }
             goBackToLogin();
         } else {
             messageLabel.setText("Error al registrar. Intente de nuevo");

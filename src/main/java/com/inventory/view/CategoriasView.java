@@ -87,7 +87,7 @@ public class CategoriasView extends JPanel {
         JPanel panel = new JPanel(new BorderLayout());
         
         String[] columnas = {"ID", "Nombre", "Descripción"};
-        modeloTabla = new DefaultTableModel(columnas, 0);
+        modeloTabla = new ReadOnlyTableModel(columnas, 0);
         tablaCategorias = new JTable(modeloTabla);
         tablaCategorias.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         tablaCategorias.getSelectionModel().addListSelectionListener(e -> {
@@ -209,5 +209,16 @@ public class CategoriasView extends JPanel {
     private void limpiarFormulario() {
         nombreField.setText("");
         descripcionArea.setText("");
+    }
+
+    class ReadOnlyTableModel extends DefaultTableModel {
+        public ReadOnlyTableModel(Object[] columnas, int filas) {
+            super(columnas, filas);
+        }
+
+        @Override
+        public boolean isCellEditable(int row, int column) {
+            return false;
+        }
     }
 }

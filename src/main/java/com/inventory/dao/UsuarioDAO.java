@@ -75,4 +75,22 @@ public class UsuarioDAO {
         
         return false;
     }
+
+    public boolean existeAdmin() {
+        String query = "SELECT COUNT(*) FROM usuarios WHERE rol = 'admin'";
+        
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+            
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        
+        return false;
+    }
 }

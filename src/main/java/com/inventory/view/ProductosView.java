@@ -3,28 +3,49 @@ package com.inventory.view;
 import com.inventory.dao.*;
 import com.inventory.model.*;
 
+
+
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.util.List;
 
 public class ProductosView extends JPanel {
     private JTabbedPane tabbedPane;
+    private ProductosPanel productosPanel;
+    private EntradasPanel entradasPanel;
+    private SalidasPanel salidasPanel;
 
     public ProductosView() {
         setLayout(new BorderLayout());
         setBackground(new Color(240, 240, 240));
 
         tabbedPane = new JTabbedPane();
-        tabbedPane.addTab("Productos", new ProductosPanel());
+        productosPanel = new ProductosPanel();
+        entradasPanel = new EntradasPanel(productosPanel);
+        salidasPanel = new SalidasPanel(productosPanel);
+        
+        tabbedPane.addTab("Productos", productosPanel);
         tabbedPane.addTab("Proveedores", new ProveedoresPanel());
-        tabbedPane.addTab("Entradas", new EntradasPanel());
-        tabbedPane.addTab("Salidas", new SalidasPanel());
-        tabbedPane.addTab("Inventario", new InventarioPanel());
+        tabbedPane.addTab("Entradas", entradasPanel);
+        tabbedPane.addTab("Salidas", salidasPanel);
+
+        tabbedPane.addChangeListener(e -> {
+            int selectedIndex = tabbedPane.getSelectedIndex();
+            if (selectedIndex == 0) {
+                productosPanel.refrescarCombos();
+            } else if (selectedIndex == 2) {
+                entradasPanel.refrescarCombos();
+            } else if (selectedIndex == 3) {
+                salidasPanel.refrescarCombos();
+            }
+        });
 
         add(tabbedPane, BorderLayout.CENTER);
     }
@@ -32,18 +53,22 @@ public class ProductosView extends JPanel {
     class ProductosPanel extends JPanel {
         private ProductoDAO productoDAO;
         private CategoriaDAO categoriaDAO;
+        private ProveedorDAO proveedorDAO;
         private JTable tablaProductos;
         private DefaultTableModel modeloTabla;
         private JTextField nombreField;
         private JTextArea descripcionArea;
         private JComboBox<Categoria> categoriaComboBox;
+        private JComboBox<Proveedor> proveedorComboBox;
         private JTextField precioField;
+        private JLabel stockLabel;
         private JButton btnAgregar, btnActualizar, btnEliminar;
         private Producto productoSeleccionado;
 
         public ProductosPanel() {
             productoDAO = new ProductoDAO();
             categoriaDAO = new CategoriaDAO();
+            proveedorDAO = new ProveedorDAO();
             setLayout(new BorderLayout(10, 10));
             setBackground(new Color(240, 240, 240));
             setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
@@ -61,6 +86,7 @@ public class ProductosView extends JPanel {
             panel.setBorder(BorderFactory.createTitledBorder("Agregar/Actualizar Producto"));
             GridBagConstraints gbc = new GridBagConstraints();
             gbc.insets = new Insets(5, 5, 5, 5);
+            gbc.fill = GridBagConstraints.HORIZONTAL;
 
             gbc.gridx = 0;
             gbc.gridy = 0;
@@ -80,24 +106,44 @@ public class ProductosView extends JPanel {
 
             gbc.gridx = 0;
             gbc.gridy = 1;
+            panel.add(new JLabel("Proveedor:"), gbc);
+
+            gbc.gridx = 1;
+            proveedorComboBox = new JComboBox<>();
+            cargarProveedores();
+            panel.add(proveedorComboBox, gbc);
+
+            gbc.gridx = 2;
+            panel.add(new JLabel("Precio:"), gbc);
+
+            gbc.gridx = 3;
+            precioField = new JTextField(15);
+            panel.add(precioField, gbc);
+
+            gbc.gridx = 0;
+            gbc.gridy = 2;
+            panel.add(new JLabel("Stock:"), gbc);
+
+            gbc.gridx = 1;
+            stockLabel = new JLabel("0");
+            panel.add(stockLabel, gbc);
+
+            gbc.gridx = 0;
+            gbc.gridy = 3;
             panel.add(new JLabel("Descripción:"), gbc);
 
             gbc.gridx = 1;
             gbc.gridwidth = 3;
+            gbc.ipady = 40;
             descripcionArea = new JTextArea(3, 15);
+            descripcionArea.setLineWrap(true);
+            descripcionArea.setWrapStyleWord(true);
             panel.add(new JScrollPane(descripcionArea), gbc);
 
             gbc.gridwidth = 1;
+            gbc.ipady = 0;
             gbc.gridx = 0;
-            gbc.gridy = 2;
-            panel.add(new JLabel("Precio:"), gbc);
-
-            gbc.gridx = 1;
-            precioField = new JTextField(15);
-            panel.add(precioField, gbc);
-
-            gbc.gridx = 2;
-            gbc.gridy = 2;
+            gbc.gridy = 4;
             btnAgregar = new JButton("Agregar");
             btnAgregar.addActionListener(new ActionListener() {
                 @Override
@@ -107,7 +153,7 @@ public class ProductosView extends JPanel {
             });
             panel.add(btnAgregar, gbc);
 
-            gbc.gridx = 3;
+            gbc.gridx = 1;
             btnActualizar = new JButton("Actualizar");
             btnActualizar.addActionListener(new ActionListener() {
                 @Override
@@ -123,8 +169,8 @@ public class ProductosView extends JPanel {
         private JPanel crearPanelTabla() {
             JPanel panel = new JPanel(new BorderLayout());
             
-            String[] columnas = {"ID", "Nombre", "Descripción", "Categoría", "Precio"};
-            modeloTabla = new DefaultTableModel(columnas, 0);
+            String[] columnas = {"ID", "Nombre", "Descripción", "Categoría", "Proveedor", "Precio", "Stock"};
+            modeloTabla = new ReadOnlyTableModel(columnas, 0);
             tablaProductos = new JTable(modeloTabla);
             tablaProductos.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
             tablaProductos.getSelectionModel().addListSelectionListener(e -> {
@@ -159,6 +205,14 @@ public class ProductosView extends JPanel {
             }
         }
 
+        private void cargarProveedores() {
+            proveedorComboBox.removeAllItems();
+            List<Proveedor> proveedores = proveedorDAO.obtenerTodosProveedores();
+            for (Proveedor prov : proveedores) {
+                proveedorComboBox.addItem(prov);
+            }
+        }
+
         private void cargarProductos() {
             modeloTabla.setRowCount(0);
             List<Producto> productos = productoDAO.obtenerTodosProductos();
@@ -168,7 +222,9 @@ public class ProductosView extends JPanel {
                     p.getNombre(),
                     p.getDescripcion(),
                     p.getNombreCategoria(),
-                    p.getPrecio()
+                    p.getNombreProveedor(),
+                    p.getPrecio(),
+                    p.getStock()
                 };
                 modeloTabla.addRow(fila);
             }
@@ -184,10 +240,18 @@ public class ProductosView extends JPanel {
                     nombreField.setText(productoSeleccionado.getNombre());
                     descripcionArea.setText(productoSeleccionado.getDescripcion());
                     precioField.setText(productoSeleccionado.getPrecio().toString());
+                    stockLabel.setText(String.valueOf(productoSeleccionado.getStock()));
                     
                     for (int i = 0; i < categoriaComboBox.getItemCount(); i++) {
                         if (categoriaComboBox.getItemAt(i).getIdCategoria() == productoSeleccionado.getIdCategoria()) {
                             categoriaComboBox.setSelectedIndex(i);
+                            break;
+                        }
+                    }
+
+                    for (int i = 0; i < proveedorComboBox.getItemCount(); i++) {
+                        if (proveedorComboBox.getItemAt(i).getIdProveedor() == productoSeleccionado.getIdProveedor()) {
+                            proveedorComboBox.setSelectedIndex(i);
                             break;
                         }
                     }
@@ -198,10 +262,12 @@ public class ProductosView extends JPanel {
         private void agregarProducto() {
             if (validarCampos()) {
                 Categoria categoriaSeleccionada = (Categoria) categoriaComboBox.getSelectedItem();
+                Proveedor proveedorSeleccionado = (Proveedor) proveedorComboBox.getSelectedItem();
                 Producto nuevoProducto = new Producto(
                     nombreField.getText(),
                     descripcionArea.getText(),
                     categoriaSeleccionada.getIdCategoria(),
+                    proveedorSeleccionado.getIdProveedor(),
                     new BigDecimal(precioField.getText())
                 );
 
@@ -223,9 +289,11 @@ public class ProductosView extends JPanel {
 
             if (validarCampos()) {
                 Categoria categoriaSeleccionada = (Categoria) categoriaComboBox.getSelectedItem();
+                Proveedor proveedorSeleccionado = (Proveedor) proveedorComboBox.getSelectedItem();
                 productoSeleccionado.setNombre(nombreField.getText());
                 productoSeleccionado.setDescripcion(descripcionArea.getText());
                 productoSeleccionado.setIdCategoria(categoriaSeleccionada.getIdCategoria());
+                productoSeleccionado.setIdProveedor(proveedorSeleccionado.getIdProveedor());
                 productoSeleccionado.setPrecio(new BigDecimal(precioField.getText()));
 
                 if (productoDAO.actualizarProducto(productoSeleccionado)) {
@@ -279,9 +347,22 @@ public class ProductosView extends JPanel {
             nombreField.setText("");
             descripcionArea.setText("");
             precioField.setText("");
+            stockLabel.setText("0");
             if (categoriaComboBox.getItemCount() > 0) {
                 categoriaComboBox.setSelectedIndex(0);
             }
+            if (proveedorComboBox.getItemCount() > 0) {
+                proveedorComboBox.setSelectedIndex(0);
+            }
+        }
+
+        public void refrescarCombos() {
+            cargarCategorias();
+            cargarProveedores();
+        }
+
+        public void refrescarTabla() {
+            cargarProductos();
         }
     }
 
@@ -366,7 +447,7 @@ public class ProductosView extends JPanel {
             JPanel panel = new JPanel(new BorderLayout());
             
             String[] columnas = {"ID", "Nombre", "Teléfono", "Dirección"};
-            modeloTabla = new DefaultTableModel(columnas, 0);
+            modeloTabla = new ReadOnlyTableModel(columnas, 0);
             tablaProveedores = new JTable(modeloTabla);
             tablaProveedores.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
             tablaProveedores.getSelectionModel().addListSelectionListener(e -> {
@@ -500,19 +581,19 @@ public class ProductosView extends JPanel {
         private EntradaDAO entradaDAO;
         private ProductoDAO productoDAO;
         private ProveedorDAO proveedorDAO;
-        private InventarioDAO inventarioDAO;
         private JTable tablaEntradas;
         private DefaultTableModel modeloTabla;
         private JComboBox<Producto> productoComboBox;
-        private JComboBox<Proveedor> proveedorComboBox;
+        private JLabel proveedorLabel;
         private JTextField cantidadField, costoField;
         private JButton btnAgregar, btnEliminar;
+        private ProductosPanel productosPanel;
 
-        public EntradasPanel() {
+        public EntradasPanel(ProductosPanel productosPanel) {
+            this.productosPanel = productosPanel;
             entradaDAO = new EntradaDAO();
             productoDAO = new ProductoDAO();
             proveedorDAO = new ProveedorDAO();
-            inventarioDAO = new InventarioDAO();
             setLayout(new BorderLayout(10, 10));
             setBackground(new Color(240, 240, 240));
             setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
@@ -538,15 +619,20 @@ public class ProductosView extends JPanel {
             gbc.gridx = 1;
             productoComboBox = new JComboBox<>();
             cargarProductos();
+            productoComboBox.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    actualizarProveedorAutomatico();
+                }
+            });
             panel.add(productoComboBox, gbc);
 
             gbc.gridx = 2;
             panel.add(new JLabel("Proveedor:"), gbc);
 
             gbc.gridx = 3;
-            proveedorComboBox = new JComboBox<>();
-            cargarProveedores();
-            panel.add(proveedorComboBox, gbc);
+            proveedorLabel = new JLabel("");
+            panel.add(proveedorLabel, gbc);
 
             gbc.gridx = 0;
             gbc.gridy = 1;
@@ -581,7 +667,7 @@ public class ProductosView extends JPanel {
             JPanel panel = new JPanel(new BorderLayout());
             
             String[] columnas = {"ID", "Producto", "Proveedor", "Fecha", "Cantidad", "Costo"};
-            modeloTabla = new DefaultTableModel(columnas, 0);
+            modeloTabla = new ReadOnlyTableModel(columnas, 0);
             tablaEntradas = new JTable(modeloTabla);
             tablaEntradas.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
@@ -638,33 +724,23 @@ public class ProductosView extends JPanel {
         private void registrarEntrada() {
             if (validarCampos()) {
                 Producto productSeleccionado = (Producto) productoComboBox.getSelectedItem();
-                Proveedor proveedorSeleccionado = (Proveedor) proveedorComboBox.getSelectedItem();
                 
                 Entrada nuevaEntrada = new Entrada(
                     productSeleccionado.getIdProducto(),
-                    proveedorSeleccionado.getIdProveedor(),
+                    productSeleccionado.getIdProveedor(),
                     new Date(System.currentTimeMillis()),
                     Integer.parseInt(cantidadField.getText()),
                     new BigDecimal(costoField.getText())
                 );
 
                 if (entradaDAO.agregarEntrada(nuevaEntrada)) {
-                    actualizarInventario(productSeleccionado.getIdProducto(), Integer.parseInt(cantidadField.getText()));
                     JOptionPane.showMessageDialog(this, "Entrada registrada exitosamente", "Éxito", JOptionPane.INFORMATION_MESSAGE);
                     limpiarFormulario();
                     cargarEntradas();
+                    productosPanel.refrescarTabla();
                 } else {
                     JOptionPane.showMessageDialog(this, "Error al registrar entrada", "Error", JOptionPane.ERROR_MESSAGE);
                 }
-            }
-        }
-
-        private void actualizarInventario(int idProducto, int cantidad) {
-            Inventario inventario = inventarioDAO.obtenerInventarioPorProducto(idProducto);
-            if (inventario != null) {
-                inventarioDAO.actualizarStock(idProducto, inventario.getStockActual() + cantidad);
-            } else {
-                inventarioDAO.agregarInventario(new Inventario(idProducto, cantidad));
             }
         }
 
@@ -708,23 +784,37 @@ public class ProductosView extends JPanel {
         private void limpiarFormulario() {
             cantidadField.setText("");
             costoField.setText("");
+            proveedorLabel.setText("");
+        }
+
+        private void actualizarProveedorAutomatico() {
+            Producto productoSeleccionado = (Producto) productoComboBox.getSelectedItem();
+            if (productoSeleccionado != null) {
+                proveedorLabel.setText(productoSeleccionado.getNombreProveedor() != null ? 
+                    productoSeleccionado.getNombreProveedor() : "N/A");
+            }
+        }
+
+        public void refrescarCombos() {
+            cargarProductos();
         }
     }
 
     class SalidasPanel extends JPanel {
         private SalidaDAO salidaDAO;
         private ProductoDAO productoDAO;
-        private InventarioDAO inventarioDAO;
         private JTable tablaSalidas;
         private DefaultTableModel modeloTabla;
         private JComboBox<Producto> productoComboBox;
+        private JLabel proveedorLabel;
         private JTextField cantidadField, destinoField;
         private JButton btnAgregar, btnEliminar;
+        private ProductosPanel productosPanel;
 
-        public SalidasPanel() {
+        public SalidasPanel(ProductosPanel productosPanel) {
+            this.productosPanel = productosPanel;
             salidaDAO = new SalidaDAO();
             productoDAO = new ProductoDAO();
-            inventarioDAO = new InventarioDAO();
             setLayout(new BorderLayout(10, 10));
             setBackground(new Color(240, 240, 240));
             setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
@@ -750,17 +840,31 @@ public class ProductosView extends JPanel {
             gbc.gridx = 1;
             productoComboBox = new JComboBox<>();
             cargarProductos();
+            productoComboBox.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    actualizarProveedorAutomatico();
+                }
+            });
             panel.add(productoComboBox, gbc);
 
             gbc.gridx = 2;
-            panel.add(new JLabel("Cantidad:"), gbc);
+            panel.add(new JLabel("Proveedor:"), gbc);
 
             gbc.gridx = 3;
+            proveedorLabel = new JLabel("");
+            panel.add(proveedorLabel, gbc);
+
+            gbc.gridx = 0;
+            gbc.gridy = 1;
+            panel.add(new JLabel("Cantidad:"), gbc);
+
+            gbc.gridx = 1;
             cantidadField = new JTextField(15);
             panel.add(cantidadField, gbc);
 
             gbc.gridx = 0;
-            gbc.gridy = 1;
+            gbc.gridy = 2;
             panel.add(new JLabel("Destino:"), gbc);
 
             gbc.gridx = 1;
@@ -770,7 +874,7 @@ public class ProductosView extends JPanel {
 
             gbc.gridwidth = 1;
             gbc.gridx = 1;
-            gbc.gridy = 2;
+            gbc.gridy = 3;
             btnAgregar = new JButton("Registrar Salida");
             btnAgregar.addActionListener(new ActionListener() {
                 @Override
@@ -787,7 +891,7 @@ public class ProductosView extends JPanel {
             JPanel panel = new JPanel(new BorderLayout());
             
             String[] columnas = {"ID", "Producto", "Fecha", "Cantidad", "Destino"};
-            modeloTabla = new DefaultTableModel(columnas, 0);
+            modeloTabla = new ReadOnlyTableModel(columnas, 0);
             tablaSalidas = new JTable(modeloTabla);
             tablaSalidas.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
@@ -837,8 +941,7 @@ public class ProductosView extends JPanel {
                 Producto productSeleccionado = (Producto) productoComboBox.getSelectedItem();
                 int cantidad = Integer.parseInt(cantidadField.getText());
 
-                Inventario inventario = inventarioDAO.obtenerInventarioPorProducto(productSeleccionado.getIdProducto());
-                if (inventario != null && inventario.getStockActual() >= cantidad) {
+                if (productSeleccionado != null && productSeleccionado.getStock() >= cantidad) {
                     Salida nuevaSalida = new Salida(
                         productSeleccionado.getIdProducto(),
                         new Date(System.currentTimeMillis()),
@@ -847,10 +950,10 @@ public class ProductosView extends JPanel {
                     );
 
                     if (salidaDAO.agregarSalida(nuevaSalida)) {
-                        inventarioDAO.actualizarStock(productSeleccionado.getIdProducto(), inventario.getStockActual() - cantidad);
                         JOptionPane.showMessageDialog(this, "Salida registrada exitosamente", "Éxito", JOptionPane.INFORMATION_MESSAGE);
                         limpiarFormulario();
                         cargarSalidas();
+                        productosPanel.refrescarTabla();
                     } else {
                         JOptionPane.showMessageDialog(this, "Error al registrar salida", "Error", JOptionPane.ERROR_MESSAGE);
                     }
@@ -899,61 +1002,30 @@ public class ProductosView extends JPanel {
         private void limpiarFormulario() {
             cantidadField.setText("");
             destinoField.setText("");
+            proveedorLabel.setText("");
+        }
+
+        private void actualizarProveedorAutomatico() {
+            Producto productoSeleccionado = (Producto) productoComboBox.getSelectedItem();
+            if (productoSeleccionado != null) {
+                proveedorLabel.setText(productoSeleccionado.getNombreProveedor() != null ? 
+                    productoSeleccionado.getNombreProveedor() : "N/A");
+            }
+        }
+
+        public void refrescarCombos() {
+            cargarProductos();
         }
     }
 
-    class InventarioPanel extends JPanel {
-        private InventarioDAO inventarioDAO;
-        private JTable tablaInventario;
-        private DefaultTableModel modeloTabla;
-
-        public InventarioPanel() {
-            inventarioDAO = new InventarioDAO();
-            setLayout(new BorderLayout(10, 10));
-            setBackground(new Color(240, 240, 240));
-            setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-            add(crearPanelTabla(), BorderLayout.CENTER);
-            
-            cargarInventario();
+    class ReadOnlyTableModel extends DefaultTableModel {
+        public ReadOnlyTableModel(Object[] columnas, int filas) {
+            super(columnas, filas);
         }
 
-        private JPanel crearPanelTabla() {
-            JPanel panel = new JPanel(new BorderLayout());
-            
-            String[] columnas = {"ID", "Producto", "Stock Actual"};
-            modeloTabla = new DefaultTableModel(columnas, 0);
-            tablaInventario = new JTable(modeloTabla);
-
-            JScrollPane scrollPane = new JScrollPane(tablaInventario);
-            panel.add(scrollPane, BorderLayout.CENTER);
-
-            JButton btnRefrescar = new JButton("Refrescar");
-            btnRefrescar.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    cargarInventario();
-                }
-            });
-            
-            JPanel panelBotones = new JPanel();
-            panelBotones.add(btnRefrescar);
-            panel.add(panelBotones, BorderLayout.SOUTH);
-
-            return panel;
-        }
-
-        private void cargarInventario() {
-            modeloTabla.setRowCount(0);
-            List<Inventario> inventarios = inventarioDAO.obtenerTodoInventario();
-            for (Inventario i : inventarios) {
-                Object[] fila = {
-                    i.getIdInventario(),
-                    i.getNombreProducto(),
-                    i.getStockActual()
-                };
-                modeloTabla.addRow(fila);
-            }
+        @Override
+        public boolean isCellEditable(int row, int column) {
+            return false;
         }
     }
 }

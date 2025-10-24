@@ -1,0 +1,10 @@
+{
+  "java.project.sourcePath": ["src/main/java"],
+  "java.project.outputPath": "target/classes",
+  "java.import.generatesMetadataFiles": true,
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "[java]": {
+    "editor.defaultFormatter": "redhat.java",
+    "editor.formatOnSave": false
+  }
+}

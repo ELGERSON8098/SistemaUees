@@ -771,7 +771,7 @@ public class ProductosView extends JPanel {
                 Entrada nuevaEntrada = new Entrada(
                     productSeleccionado.getIdProducto(),
                     productSeleccionado.getIdProveedor(),
-                    new Date(System.currentTimeMillis()),
+                    new java.sql.Date(System.currentTimeMillis()),
                     Integer.parseInt(cantidadField.getText()),
                     new BigDecimal(costoField.getText())
                 );
@@ -987,7 +987,7 @@ public class ProductosView extends JPanel {
                 if (productSeleccionado != null && productSeleccionado.getStock() >= cantidad) {
                     Salida nuevaSalida = new Salida(
                         productSeleccionado.getIdProducto(),
-                        new Date(System.currentTimeMillis()),
+                        new java.sql.Date(System.currentTimeMillis()),
                         cantidad,
                         destinoField.getText()
                     );

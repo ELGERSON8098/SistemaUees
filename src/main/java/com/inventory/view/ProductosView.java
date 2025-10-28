@@ -278,22 +278,31 @@ public class ProductosView extends JPanel {
 
         private void agregarProducto() {
             if (validarCampos()) {
-                Categoria categoriaSeleccionada = (Categoria) categoriaComboBox.getSelectedItem();
-                Proveedor proveedorSeleccionado = (Proveedor) proveedorComboBox.getSelectedItem();
-                Producto nuevoProducto = new Producto(
-                    nombreField.getText(),
-                    descripcionArea.getText(),
-                    categoriaSeleccionada.getIdCategoria(),
-                    proveedorSeleccionado.getIdProveedor(),
-                    new BigDecimal(precioField.getText())
-                );
+                try {
+                    Categoria categoriaSeleccionada = (Categoria) categoriaComboBox.getSelectedItem();
+                    Proveedor proveedorSeleccionado = (Proveedor) proveedorComboBox.getSelectedItem();
+                    
+                    int idCategoria = (categoriaSeleccionada != null) ? categoriaSeleccionada.getIdCategoria() : 0;
+                    int idProveedor = (proveedorSeleccionado != null) ? proveedorSeleccionado.getIdProveedor() : 0;
+                    
+                    Producto nuevoProducto = new Producto(
+                        nombreField.getText().trim(),
+                        descripcionArea.getText().trim(),
+                        idCategoria,
+                        idProveedor,
+                        new BigDecimal(precioField.getText().trim())
+                    );
 
-                if (productoDAO.agregarProducto(nuevoProducto)) {
-                    JOptionPane.showMessageDialog(this, "Producto agregado exitosamente", "Éxito", JOptionPane.INFORMATION_MESSAGE);
-                    limpiarFormulario();
-                    cargarProductos();
-                } else {
-                    JOptionPane.showMessageDialog(this, "Error al agregar producto", "Error", JOptionPane.ERROR_MESSAGE);
+                    if (productoDAO.agregarProducto(nuevoProducto)) {
+                        JOptionPane.showMessageDialog(this, "Producto agregado exitosamente", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+                        limpiarFormulario();
+                        cargarProductos();
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Error al agregar producto", "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(this, "Error: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                    e.printStackTrace();
                 }
             }
         }
@@ -305,21 +314,30 @@ public class ProductosView extends JPanel {
             }
 
             if (validarCampos()) {
-                Categoria categoriaSeleccionada = (Categoria) categoriaComboBox.getSelectedItem();
-                Proveedor proveedorSeleccionado = (Proveedor) proveedorComboBox.getSelectedItem();
-                productoSeleccionado.setNombre(nombreField.getText());
-                productoSeleccionado.setDescripcion(descripcionArea.getText());
-                productoSeleccionado.setIdCategoria(categoriaSeleccionada.getIdCategoria());
-                productoSeleccionado.setIdProveedor(proveedorSeleccionado.getIdProveedor());
-                productoSeleccionado.setPrecio(new BigDecimal(precioField.getText()));
+                try {
+                    Categoria categoriaSeleccionada = (Categoria) categoriaComboBox.getSelectedItem();
+                    Proveedor proveedorSeleccionado = (Proveedor) proveedorComboBox.getSelectedItem();
+                    
+                    int idCategoria = (categoriaSeleccionada != null) ? categoriaSeleccionada.getIdCategoria() : 0;
+                    int idProveedor = (proveedorSeleccionado != null) ? proveedorSeleccionado.getIdProveedor() : 0;
+                    
+                    productoSeleccionado.setNombre(nombreField.getText().trim());
+                    productoSeleccionado.setDescripcion(descripcionArea.getText().trim());
+                    productoSeleccionado.setIdCategoria(idCategoria);
+                    productoSeleccionado.setIdProveedor(idProveedor);
+                    productoSeleccionado.setPrecio(new BigDecimal(precioField.getText().trim()));
 
-                if (productoDAO.actualizarProducto(productoSeleccionado)) {
-                    JOptionPane.showMessageDialog(this, "Producto actualizado exitosamente", "Éxito", JOptionPane.INFORMATION_MESSAGE);
-                    limpiarFormulario();
-                    cargarProductos();
-                    productoSeleccionado = null;
-                } else {
-                    JOptionPane.showMessageDialog(this, "Error al actualizar producto", "Error", JOptionPane.ERROR_MESSAGE);
+                    if (productoDAO.actualizarProducto(productoSeleccionado)) {
+                        JOptionPane.showMessageDialog(this, "Producto actualizado exitosamente", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+                        limpiarFormulario();
+                        cargarProductos();
+                        productoSeleccionado = null;
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Error al actualizar producto", "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(this, "Error: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                    e.printStackTrace();
                 }
             }
         }
@@ -345,15 +363,33 @@ public class ProductosView extends JPanel {
         }
 
         private boolean validarCampos() {
-            if (nombreField.getText().isEmpty() || descripcionArea.getText().isEmpty() || precioField.getText().isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Todos los campos son obligatorios", "Error de validación", JOptionPane.ERROR_MESSAGE);
+            String nombre = nombreField.getText().trim();
+            String descripcion = descripcionArea.getText().trim();
+            String precio = precioField.getText().trim();
+            
+            if (nombre.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "El nombre del producto es obligatorio", "Error de validación", JOptionPane.ERROR_MESSAGE);
+                return false;
+            }
+            
+            if (descripcion.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "La descripción es obligatoria", "Error de validación", JOptionPane.ERROR_MESSAGE);
+                return false;
+            }
+            
+            if (precio.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "El precio es obligatorio", "Error de validación", JOptionPane.ERROR_MESSAGE);
                 return false;
             }
 
             try {
-                new BigDecimal(precioField.getText());
+                BigDecimal precioDecimal = new BigDecimal(precio);
+                if (precioDecimal.compareTo(BigDecimal.ZERO) <= 0) {
+                    JOptionPane.showMessageDialog(this, "El precio debe ser mayor que cero", "Error de validación", JOptionPane.ERROR_MESSAGE);
+                    return false;
+                }
             } catch (NumberFormatException e) {
-                JOptionPane.showMessageDialog(this, "El precio debe ser un número válido", "Error de validación", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "El precio debe ser un número válido (ej: 10.50)", "Error de validación", JOptionPane.ERROR_MESSAGE);
                 return false;
             }
 

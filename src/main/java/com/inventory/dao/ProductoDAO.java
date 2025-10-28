@@ -17,16 +17,38 @@ public class ProductoDAO {
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
             
+            if (producto.getNombre() == null || producto.getNombre().isEmpty()) {
+                System.err.println("Error: El nombre del producto no puede estar vacío");
+                return false;
+            }
+            
+            if (producto.getPrecio() == null || producto.getPrecio().signum() <= 0) {
+                System.err.println("Error: El precio debe ser mayor a cero");
+                return false;
+            }
+            
             pstmt.setString(1, producto.getNombre());
-            pstmt.setString(2, producto.getDescripcion());
-            pstmt.setInt(3, producto.getIdCategoria());
-            pstmt.setInt(4, producto.getIdProveedor());
+            pstmt.setString(2, producto.getDescripcion() != null ? producto.getDescripcion() : "");
+            
+            if (producto.getIdCategoria() > 0) {
+                pstmt.setInt(3, producto.getIdCategoria());
+            } else {
+                pstmt.setNull(3, java.sql.Types.INTEGER);
+            }
+            
+            if (producto.getIdProveedor() > 0) {
+                pstmt.setInt(4, producto.getIdProveedor());
+            } else {
+                pstmt.setNull(4, java.sql.Types.INTEGER);
+            }
+            
             pstmt.setBigDecimal(5, producto.getPrecio());
             pstmt.setInt(6, 0);
             
             int rowsInserted = pstmt.executeUpdate();
             return rowsInserted > 0;
         } catch (SQLException e) {
+            System.err.println("Error en la base de datos: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
@@ -106,16 +128,38 @@ public class ProductoDAO {
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
             
+            if (producto.getNombre() == null || producto.getNombre().isEmpty()) {
+                System.err.println("Error: El nombre del producto no puede estar vacío");
+                return false;
+            }
+            
+            if (producto.getPrecio() == null || producto.getPrecio().signum() <= 0) {
+                System.err.println("Error: El precio debe ser mayor a cero");
+                return false;
+            }
+            
             pstmt.setString(1, producto.getNombre());
-            pstmt.setString(2, producto.getDescripcion());
-            pstmt.setInt(3, producto.getIdCategoria());
-            pstmt.setInt(4, producto.getIdProveedor());
+            pstmt.setString(2, producto.getDescripcion() != null ? producto.getDescripcion() : "");
+            
+            if (producto.getIdCategoria() > 0) {
+                pstmt.setInt(3, producto.getIdCategoria());
+            } else {
+                pstmt.setNull(3, java.sql.Types.INTEGER);
+            }
+            
+            if (producto.getIdProveedor() > 0) {
+                pstmt.setInt(4, producto.getIdProveedor());
+            } else {
+                pstmt.setNull(4, java.sql.Types.INTEGER);
+            }
+            
             pstmt.setBigDecimal(5, producto.getPrecio());
             pstmt.setInt(6, producto.getIdProducto());
             
             int rowsUpdated = pstmt.executeUpdate();
             return rowsUpdated > 0;
         } catch (SQLException e) {
+            System.err.println("Error en la base de datos: " + e.getMessage());
             e.printStackTrace();
             return false;
         }

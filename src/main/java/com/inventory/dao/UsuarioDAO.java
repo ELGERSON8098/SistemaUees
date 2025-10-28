@@ -2,6 +2,7 @@ package com.inventory.dao;
 
 import com.inventory.config.DatabaseConfig;
 import com.inventory.model.Usuario;
+import com.inventory.util.PasswordUtil;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -15,9 +16,11 @@ public class UsuarioDAO {
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
             
+            String passwordEncriptada = PasswordUtil.hashPassword(usuario.getContrasena());
+            
             pstmt.setString(1, usuario.getNombre());
             pstmt.setString(2, usuario.getUsuario());
-            pstmt.setString(3, usuario.getContrasena());
+            pstmt.setString(3, passwordEncriptada);
             pstmt.setString(4, usuario.getRol());
             
             int rowsInserted = pstmt.executeUpdate();
@@ -29,26 +32,29 @@ public class UsuarioDAO {
     }
 
     public Usuario login(String usuario, String contrasena) {
-        String query = "SELECT * FROM usuarios WHERE usuario = ? AND contrasena = ?";
+        String query = "SELECT * FROM usuarios WHERE usuario = ?";
         
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
             
             pstmt.setString(1, usuario);
-            pstmt.setString(2, contrasena);
             
             ResultSet rs = pstmt.executeQuery();
             
             if (rs.next()) {
-                Usuario user = new Usuario(
-                    rs.getInt("id_usuario"),
-                    rs.getString("nombre"),
-                    rs.getString("usuario"),
-                    rs.getString("contrasena"),
-                    rs.getString("rol"),
-                    rs.getTimestamp("fecha_registro")
-                );
-                return user;
+                String passwordEncriptada = rs.getString("contrasena");
+                
+                if (PasswordUtil.verifyPassword(contrasena, passwordEncriptada)) {
+                    Usuario user = new Usuario(
+                        rs.getInt("id_usuario"),
+                        rs.getString("nombre"),
+                        rs.getString("usuario"),
+                        rs.getString("contrasena"),
+                        rs.getString("rol"),
+                        rs.getTimestamp("fecha_registro")
+                    );
+                    return user;
+                }
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -153,9 +159,11 @@ public class UsuarioDAO {
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
             
+            String passwordEncriptada = PasswordUtil.hashPassword(usuario.getContrasena());
+            
             pstmt.setString(1, usuario.getNombre());
             pstmt.setString(2, usuario.getUsuario());
-            pstmt.setString(3, usuario.getContrasena());
+            pstmt.setString(3, passwordEncriptada);
             pstmt.setString(4, usuario.getRol());
             pstmt.setInt(5, usuario.getIdUsuario());
             

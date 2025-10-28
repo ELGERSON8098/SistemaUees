@@ -93,4 +93,92 @@ public class UsuarioDAO {
         
         return false;
     }
+
+    public java.util.List<Usuario> obtenerTodosUsuarios() {
+        java.util.List<Usuario> usuarios = new java.util.ArrayList<>();
+        String query = "SELECT * FROM usuarios";
+        
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+            
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                Usuario usuario = new Usuario(
+                    rs.getInt("id_usuario"),
+                    rs.getString("nombre"),
+                    rs.getString("usuario"),
+                    rs.getString("contrasena"),
+                    rs.getString("rol"),
+                    rs.getTimestamp("fecha_registro")
+                );
+                usuarios.add(usuario);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        
+        return usuarios;
+    }
+
+    public Usuario obtenerUsuarioPorId(int idUsuario) {
+        String query = "SELECT * FROM usuarios WHERE id_usuario = ?";
+        
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+            
+            pstmt.setInt(1, idUsuario);
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return new Usuario(
+                    rs.getInt("id_usuario"),
+                    rs.getString("nombre"),
+                    rs.getString("usuario"),
+                    rs.getString("contrasena"),
+                    rs.getString("rol"),
+                    rs.getTimestamp("fecha_registro")
+                );
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        
+        return null;
+    }
+
+    public boolean actualizarUsuario(Usuario usuario) {
+        String query = "UPDATE usuarios SET nombre = ?, usuario = ?, contrasena = ?, rol = ? WHERE id_usuario = ?";
+        
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+            
+            pstmt.setString(1, usuario.getNombre());
+            pstmt.setString(2, usuario.getUsuario());
+            pstmt.setString(3, usuario.getContrasena());
+            pstmt.setString(4, usuario.getRol());
+            pstmt.setInt(5, usuario.getIdUsuario());
+            
+            int rowsUpdated = pstmt.executeUpdate();
+            return rowsUpdated > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean eliminarUsuario(int idUsuario) {
+        String query = "DELETE FROM usuarios WHERE id_usuario = ?";
+        
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+            
+            pstmt.setInt(1, idUsuario);
+            int rowsDeleted = pstmt.executeUpdate();
+            return rowsDeleted > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 }

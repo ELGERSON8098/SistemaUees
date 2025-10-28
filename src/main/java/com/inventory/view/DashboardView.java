@@ -41,6 +41,7 @@ public class DashboardView extends JFrame {
         panelContenido.add(crearPanelBienvenida(), "inicio");
         panelContenido.add(new ProductosView(), "productos");
         panelContenido.add(new CategoriasView(), "categorias");
+        panelContenido.add(new UsuariosView(), "usuarios");
         
         JPanel panelCentral = new JPanel(new BorderLayout());
         panelAlertas = crearPanelAlertas();
@@ -94,6 +95,17 @@ public class DashboardView extends JFrame {
             }
         });
         panel.add(btnCategorias);
+
+        if ("admin".equals(usuarioActual.getRol())) {
+            JButton btnUsuarios = crearBotonMenu("Usuarios");
+            btnUsuarios.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    cardLayout.show(panelContenido, "usuarios");
+                }
+            });
+            panel.add(btnUsuarios);
+        }
 
         panel.add(Box.createVerticalGlue());
 
